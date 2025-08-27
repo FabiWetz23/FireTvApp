@@ -1,47 +1,89 @@
 package com.example.firetvapp
 
+import android.annotation.SuppressLint
 import android.os.Bundle
+import android.view.KeyEvent
+import android.webkit.WebChromeClient
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.firetvapp.ui.theme.FireTvAppTheme
+import androidx.compose.ui.viewinterop.AndroidView
 
 class MainActivity : ComponentActivity() {
+
+    private lateinit var webView: WebView
+
+    companion object {
+        private const val START_URL = "https://xprime.tv/"
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+
         setContent {
-            FireTvAppTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+            WebViewScreen()
+        }
+    }
+
+    @Composable
+    fun WebViewScreen() {
+        AndroidView(
+            factory = { context ->
+                WebView(context).apply {
+                    webView = this
+                    isFocusable = true
+                    isFocusableInTouchMode = true
+                    requestFocus()
+
+                    settings.apply {
+                        javaScriptEnabled = true
+                        domStorageEnabled = true
+                        mediaPlaybackRequiresUserGesture = false
+                        useWideViewPort = true
+                        loadWithOverviewMode = true
+                        setSupportZoom(true)
+                        builtInZoomControls = false
+                        displayZoomControls = false
+                        mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+                        userAgentString = "$userAgentString FireTVApp"
+                    }
+
+                    webViewClient = WebViewClient()
+                    webChromeClient = WebChromeClient()
+                    loadUrl(START_URL)
+                }
+            }
+        )
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        // Navigation mit FireTV Fernbedienung
+        if (::webView.isInitialized) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_BACK -> {
+                    if (webView.canGoBack()) {
+                        webView.goBack()
+                        return true
+                    }
+                }
+                KeyEvent.KEYCODE_DPAD_DOWN -> {
+                    webView.pageDown(false); return true
+                }
+                KeyEvent.KEYCODE_DPAD_UP -> {
+                    webView.pageUp(false); return true
+                }
+                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                    webView.scrollBy(-200, 0); return true
+                }
+                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                    webView.scrollBy(200, 0); return true
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    FireTvAppTheme {
-        Greeting("Android")
+        return super.onKeyDown(keyCode, event)
     }
 }
