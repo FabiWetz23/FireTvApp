@@ -2,27 +2,29 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.firetvapp">
 
-    <uses-permission android:name="android.permission.INTERNET"/>
-
-    <uses-feature android:name="android.software.leanback" android:required="true"/>
-    <uses-feature android:name="android.hardware.type.television" android:required="true"/>
-    <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
-        android:label="@string/app_name"
+        android:allowBackup="true"
+        android:label="FireTVApp"
         android:icon="@mipmap/ic_launcher"
-        android:usesCleartextTraffic="false">
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:usesCleartextTraffic="false"
+        android:theme="@style/Theme.FireTVApp.NoActionBar">
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTask">
-
+            android:launchMode="singleTask"
+            android:configChanges="keyboard|keyboardHidden|navigation|screenLayout|screenSize|smallestScreenSize|uiMode|orientation">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-
         </activity>
+
     </application>
 </manifest>
