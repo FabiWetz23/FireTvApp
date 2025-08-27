@@ -1,6 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Basis-Theme (mit ActionBar, falls du es mal brauchst) -->
     <style name="Theme.FireTVApp" parent="Theme.AppCompat.DayNight.DarkActionBar">
         <item name="colorPrimary">@color/purple_500</item>
         <item name="colorPrimaryDark">@color/purple_700</item>
@@ -8,7 +6,6 @@
         <item name="android:statusBarColor">@color/purple_700</item>
     </style>
 
-    <!-- NoActionBar-Variante für Fire TV -->
     <style name="Theme.FireTVApp.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="colorPrimary">@color/purple_500</item>
         <item name="colorPrimaryDark">@color/purple_700</item>
@@ -16,4 +13,3 @@
         <item name="android:statusBarColor">@color/purple_700</item>
     </style>
 </resources>
-
