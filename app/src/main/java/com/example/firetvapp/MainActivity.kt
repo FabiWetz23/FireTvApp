@@ -89,18 +89,53 @@ class MainActivity : ComponentActivity() {
     }
 
     /** Einheitliche Back-Logik für TV-Remotes */
+    /** Smarte Back-Logik: zuerst In-Page schließen, dann Verlauf, zuletzt Startseite */
     private fun handleTvBack(): Boolean {
-        val current = webView.url ?: ""
-        return if (current.equals(START_URL, ignoreCase = true)) {
-            // Schon auf Startseite -> Nichts tun, App bleibt offen
-            true
-        } else {
-            // Egal wo man ist -> zur Startseite springen und History verwerfen
-            webView.loadUrl(START_URL)
-            // History nach dem Wechsel leeren (kleiner Delay ist nicht nötig: onPageFinished reicht)
-            // Wir leeren in onPageFinished (siehe unten), sobald Startseite geladen wurde.
-            true
+        if (!::webView.isInitialized) return true
+
+        // 1) Versuche zuerst, in der Seite Overlays/Suche zu schließen (JS)
+        val js = """
+        (function(){
+          // Wenn ein Eingabefeld fokussiert ist: blur() statt Seitenwechsel
+          var ae = document.activeElement;
+          if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) {
+            ae.blur();
+            return 'blurred';
+          }
+          // Häufige Close-Buttons/Overlays
+          var close = document.querySelector('[data-close],[data-dismiss],.modal [data-action="close"],.modal .close,[aria-label="Close"],[aria-label="Schließen"],.search-overlay .close');
+          if (close) { close.click(); return 'closed'; }
+
+          // Falls eine Such-UI offen ist (Beispiele): versuche sie zu schließen
+          var so = document.querySelector('.search-overlay.open, .search--open, body.search-open');
+          if (so) { 
+            // Sende ESC in-Page
+            var evt = new KeyboardEvent('keydown',{key:'Escape',keyCode:27,which:27,bubbles:true});
+            document.dispatchEvent(evt);
+            return 'closed';
+          }
+          return 'none';
+        })();
+    """.trimIndent()
+
+        webView.evaluateJavascript(js) { result ->
+            // Wenn wir 'blurred' oder 'closed' zurückbekommen: Event ist verbraucht
+            if (result?.contains("blurred") == true || result?.contains("closed") == true) {
+                return@evaluateJavascript
+            } else {
+                // 2) Danach normal im Verlauf zurück
+                if (webView.canGoBack()) {
+                    webView.goBack()
+                } else {
+                    // 3) Letzte Stufe: zur Startseite (App nie schließen)
+                    val current = webView.url ?: ""
+                    if (!current.equals(START_URL, ignoreCase = true)) {
+                        webView.loadUrl(START_URL)
+                    }
+                }
+            }
         }
+        return true
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
@@ -232,20 +267,14 @@ class MainActivity : ComponentActivity() {
     @SuppressLint("GestureBackNavigation")
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         return when (keyCode) {
-            // 🔙 Zurück oder Escape → immer zurück zur Startseite
-            KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_ESCAPE -> {
-                if (::webView.isInitialized) {
-                    val current = webView.url ?: ""
-                    if (!current.equals(START_URL, ignoreCase = true)) {
-                        webView.loadUrl(START_URL)
-                        // History leeren, damit kein weiterer "Back" die App beendet
-                        webView.postDelayed({ webView.clearHistory() }, 300)
-                    }
-                }
+
+            // Nur echte Zurück-Taste; ESC NICHT als Back, damit Suche/Keyboard nicht abgewürgt werden
+            KeyEvent.KEYCODE_BACK -> {
+                handleTvBack()
                 true
             }
 
-            // 📑 Menü-Button → Klick auf das Such-Icon ausführen
+            // Menü-Button → Klick auf das Such-Icon ausführen
             KeyEvent.KEYCODE_MENU -> {
                 if (::webView.isInitialized) {
                     val js = """
@@ -254,8 +283,7 @@ class MainActivity : ComponentActivity() {
                         if (!el) return false;
                         try { el.click(); return true; } catch(e){}
                         try {
-                          const evt = new MouseEvent('click', {bubbles:true, cancelable:true});
-                          el.dispatchEvent(evt);
+                          el.dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable:true}));
                           return true;
                         } catch(e){}
                         return false;
@@ -275,5 +303,4 @@ class MainActivity : ComponentActivity() {
             else -> super.onKeyDown(keyCode, event)
         }
     }
-
 }
